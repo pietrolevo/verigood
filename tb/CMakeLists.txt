@@ -15,14 +15,14 @@
 #		along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 function(add_verilog_test MODULE_NAME SOURCE_PATH IS_TOP)
-  # define executable test for the module
-  set(TEST_TARGET "test_${MODULE_NAME}")
-  
-  # find correspondent C++ file
+  # find C++ testbench file
   set(TEST_CPP "${CMAKE_CURRENT_SOURCE_DIR}/test_${MODULE_NAME}.cpp")
+  set(VG_HELPER_CPP "${CMAKE_SOURCE_DIR}/include/vg_helper.cpp")
   
   if(EXISTS ${TEST_CPP})
-    add_executable(${TEST_TARGET} ${TEST_CPP})
+    # define executable test for the module
+    set(TEST_TARGET "test_${MODULE_NAME}")
+    add_executable(${TEST_TARGET} ${TEST_CPP} ${VG_HELPER_CPP})
 
     # take all files .sv except current one
     file(GLOB ALL_RTL_FILES "${CMAKE_SOURCE_DIR}/rtl/top/*.sv" "${CMAKE_SOURCE_DIR}/rtl/mods/*.sv")
@@ -38,12 +38,19 @@ function(add_verilog_test MODULE_NAME SOURCE_PATH IS_TOP)
         SOURCES ${SOURCE_PATH} ${RTL_MODS_EXCEPT_SELF}
         PREFIX V${MODULE_NAME}
         TOP_MODULE ${MODULE_NAME}
+        TRACE
         COVERAGE
         OPTIONS -Wall -I${CMAKE_SOURCE_DIR}/rtl/top -I${CMAKE_SOURCE_DIR}/rtl/mods
       )
 
       # create log folder
       file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/logs")
+
+      # include path
+      target_include_directories(${TEST_TARGET}
+        PRIVATE
+          "${CMAKE_SOURCE_DIR}/include"
+      )
 
       # link to google test
       target_link_libraries(${TEST_TARGET}

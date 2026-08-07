@@ -1,0 +1,26 @@
+#!/bin/bash
+set -e
+
+TARGET_MODULE=${1:-""}
+
+echo "# Clean and configuration CMake "
+mkdir -p build
+cd build
+
+if [ -n "$TARGET_MODULE" ]; then
+  cmake .. -DTEST_MODULE="$TARGET_MODULE"
+else
+  cmake ..
+fi
+
+echo "# Compile and execute tests "
+cmake --build . --parallel $(nproc)
+ctest --output-on-failure
+
+echo "# Coverage computation "
+cmake --build . --target coverage
+
+echo "# generating coverage report in html "
+cmake --build . --target genhtml
+
+echo "# Run complete, open in browser index.html to consult the coverage"

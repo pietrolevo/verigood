@@ -1,45 +1,10 @@
-#!/usr/bin/perl
-#		VeriGood Testbench environment with Verilator and GTest
-#		Copyright (C) 2026  Pietro Alberto Levo
-#
-#		This program is free software: you can redistribute it and/or modify
-#		it under the terms of the GNU General Public License as published by
-#		the Free Software Foundation, either version 3 of the License, or
-#		(at your option) any later version.
-#
-#		This program is distributed in the hope that it will be useful,
-#		but WITHOUT ANY WARRANTY; without even the implied warranty of
-#		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#		GNU General Public License for more details.
-
-#		You should have received a copy of the GNU General Public License
-#		along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-use strict;
-use warnings;
-use File::Path qw(make_path);
-use POSIX qw(strftime);
-
-my $today = strftime "%Y-%m-%d", localtime;
-
-my $module_name = $ARGV[0];
-if (!$module_name) {
-  die "Use: perl scripts/gen_tb.pl <module_name>\n";
-}
-
-make_path("tb");
-
-my $tb_filename = "tb/test_${module_name}.cpp";
-my $capitalized = ucfirst($module_name);
-
-my $template = <<"CPP";
 /*
 #============================================================================#
-| file: $tb_filename
-| author: <your_name>
-| date: $today
-| last update: <date_of_last_update>
-| brief: Testbench for $module_name
+| file: tb/test_pwm_gen.cpp
+| author: Pietro Alberto Levo
+| date: 2026-08-09
+| last update: 2026-08-09
+| brief: Testbench for pwm_gen
 |
 | VeriGood Copyright (C) 2026 Pietro Alberto Levo
 | This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
@@ -51,7 +16,7 @@ my $template = <<"CPP";
 */
 
 #include <verilated.h>
-#include "V${module_name}.h"
+#include "Vpwm_gen.h"
 #include <gtest/gtest.h>
 #include <verilated_vcd_c.h>
 #include <verilated_cov.h>
@@ -60,14 +25,14 @@ my $template = <<"CPP";
 #define NANOSEC 1000
 #define MICROSEC 100000
 
-class ${module_name}Test : public ::testing::Test {
+class pwm_genTest : public ::testing::Test {
   protected:
-    V${module_name}* dut;
+    Vpwm_gen* dut;
     VerilatedVcdC* tfp;
     vluint64_t sim_time = 0;
 
     const int CLK_PERIOD = 10;
-    const int TIME_UNIT = NANOSEC;            
+    const int TIME_UNIT = MICROSEC;            
     const int CLK_STEP = ((CLK_PERIOD*TIME_UNIT) / 2);
 
     void clk_process(void) {
@@ -88,11 +53,16 @@ class ${module_name}Test : public ::testing::Test {
       }
     }
 
+    void wait_ns(unsigned int n) {
+      sim_time += n;
+      if (tfp) tfp->dump(sim_time);
+    }
+
     void SetUp() override {
-      dut = new V${module_name};
+      dut = new Vpwm_gen;
       Verilated::traceEverOn(1);
       const ::testing::TestInfo* const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
-      std::string vcd_filename = std::string("waveform_${module_name}_") + test_info->name() + ".vcd";
+      std::string vcd_filename = std::string("waveform_pwm_gen_") + test_info->name() + ".vcd";
 
       tfp = new VerilatedVcdC;
       dut->trace(tfp, 99);
@@ -101,8 +71,12 @@ class ${module_name}Test : public ::testing::Test {
       tfp->set_time_resolution("1ps");
 
       /* initial reset */
-
-
+      dut->rst_n = 0;
+      dut->en = 0;
+      dut->duty_in = 0;
+      wait_cycles(2);
+      dut->rst_n = 1;
+      wait_cycles(1);
       /* end initial reset */
 
       dut->eval();
@@ -119,9 +93,18 @@ class ${module_name}Test : public ::testing::Test {
 
 };
 
-TEST_F(${Module_name}Test, testName) {
-  /* test body */
+TEST_F(pwm_genTest, testDutyCycle) {
+  dut->en = 1;
+  dut->duty_in = 64;
+  clk_process();
+  for (int i = 0; i < 512; i++) {
+    if (i < 63) ASSERT_EQ(dut->pwm_out, 1);
+    if (i > 63 && i < 255) ASSERT_EQ(dut->pwm_out, 0);
+    clk_process();
+  }
 
+  wait_cycles(2);
+  wait_ns(13);
 }
 
 int main(int argc, char **argv) {
@@ -130,13 +113,6 @@ int main(int argc, char **argv) {
 
   auto result = RUN_ALL_TESTS();
 
-  VerilatedCov::write("logs/coverage_${module_name}.dat");
+  VerilatedCov::write("logs/coverage_pwm_gen.dat");
   return result;
 }
-CPP
-
-open(my $fh, '>', $tb_filename) or die "Impossible to open file '$tb_filename': $!";
-print $fh $template;
-close($fh);
-
-print "[SUCCESS] Testbench template created: $tb_filename\n";

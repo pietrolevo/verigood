@@ -1,6 +1,1 @@
 build/
-
-rtl/mods/*
-rtl/top/*
-tb/*.cpp
-include/*

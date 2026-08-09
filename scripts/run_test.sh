@@ -10,6 +10,8 @@ mv rtl/mods/${TARGET_MODULE}.sv rtl/top/.
 mkdir -p build
 cd build
 
+rm -rf tb/logs/coverage_*.dat logs/coverage_*.dat 2>/dev/null || true
+
 if [ -n "$TARGET_MODULE" ]; then
   cmake .. -DTEST_MODULE="$TARGET_MODULE"
 else

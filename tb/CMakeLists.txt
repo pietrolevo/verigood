@@ -17,12 +17,11 @@
 function(add_verilog_test MODULE_NAME SOURCE_PATH IS_TOP)
   # find C++ testbench file
   set(TEST_CPP "${CMAKE_CURRENT_SOURCE_DIR}/test_${MODULE_NAME}.cpp")
-  set(VG_HELPER_CPP "${CMAKE_SOURCE_DIR}/include/vg_helper.cpp")
   
   if(EXISTS ${TEST_CPP})
     # define executable test for the module
     set(TEST_TARGET "test_${MODULE_NAME}")
-    add_executable(${TEST_TARGET} ${TEST_CPP} ${VG_HELPER_CPP})
+    add_executable(${TEST_TARGET} ${TEST_CPP})
 
     # take all files .sv except current one
     file(GLOB ALL_RTL_FILES "${CMAKE_SOURCE_DIR}/rtl/top/*.sv" "${CMAKE_SOURCE_DIR}/rtl/mods/*.sv")

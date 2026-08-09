@@ -1,45 +1,10 @@
-#!/usr/bin/perl
-#		VeriGood Testbench environment with Verilator and GTest
-#		Copyright (C) 2026  Pietro Alberto Levo
-#
-#		This program is free software: you can redistribute it and/or modify
-#		it under the terms of the GNU General Public License as published by
-#		the Free Software Foundation, either version 3 of the License, or
-#		(at your option) any later version.
-#
-#		This program is distributed in the hope that it will be useful,
-#		but WITHOUT ANY WARRANTY; without even the implied warranty of
-#		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#		GNU General Public License for more details.
-
-#		You should have received a copy of the GNU General Public License
-#		along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-use strict;
-use warnings;
-use File::Path qw(make_path);
-use POSIX qw(strftime);
-
-my $today = strftime "%Y-%m-%d", localtime;
-
-my $module_name = $ARGV[0];
-if (!$module_name) {
-  die "Use: perl scripts/gen_tb.pl <module_name>\n";
-}
-
-make_path("tb");
-
-my $tb_filename = "tb/test_${module_name}.cpp";
-my $capitalized = ucfirst($module_name);
-
-my $template = <<"CPP";
 /*
 #============================================================================#
-| file: $tb_filename
-| author: <your_name>
-| date: $today
-| last update: <date_of_last_update>
-| brief: Testbench for $module_name
+| file: tb/test_counter.cpp
+| author: Pietro Alberto Levo
+| date: 2026-08-09
+| last update: 2026-08-09
+| brief: Testbench for counter
 |
 | VeriGood Copyright (C) 2026 Pietro Alberto Levo
 | This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
@@ -51,7 +16,7 @@ my $template = <<"CPP";
 */
 
 #include <verilated.h>
-#include "V${module_name}.h"
+#include "Vcounter.h"
 #include <gtest/gtest.h>
 #include <verilated_vcd_c.h>
 #include <verilated_cov.h>
@@ -60,9 +25,9 @@ my $template = <<"CPP";
 #define NANOSEC 1000
 #define MICROSEC 100000
 
-class ${module_name}Test : public ::testing::Test {
+class counterTest : public ::testing::Test {
   protected:
-    V${module_name}* dut;
+    Vcounter* dut;
     VerilatedVcdC* tfp;
     vluint64_t sim_time = 0;
 
@@ -89,10 +54,10 @@ class ${module_name}Test : public ::testing::Test {
     }
 
     void SetUp() override {
-      dut = new V${module_name};
+      dut = new Vcounter;
       Verilated::traceEverOn(1);
       const ::testing::TestInfo* const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
-      std::string vcd_filename = std::string("waveform_${module_name}_") + test_info->name() + ".vcd";
+      std::string vcd_filename = std::string("waveform_counter_") + test_info->name() + ".vcd";
 
       tfp = new VerilatedVcdC;
       dut->trace(tfp, 99);
@@ -101,8 +66,11 @@ class ${module_name}Test : public ::testing::Test {
       tfp->set_time_resolution("1ps");
 
       /* initial reset */
-
-
+      dut->rst_n = 0;
+      dut->en = 0;
+      wait_cycles(3);
+      dut->rst_n = 1;
+      wait_cycles(1);
       /* end initial reset */
 
       dut->eval();
@@ -119,9 +87,15 @@ class ${module_name}Test : public ::testing::Test {
 
 };
 
-TEST_F(${Module_name}Test, testName) {
-  /* test body */
+TEST_F(counterTest, CountUp) {
+  dut->en = 1;
+  wait_cycles(1);
+  ASSERT_EQ(dut->data_out, 1);
 
+  wait_cycles(4);
+  ASSERT_EQ(dut->data_out, 5);
+
+  wait_cycles(2);
 }
 
 int main(int argc, char **argv) {
@@ -130,13 +104,6 @@ int main(int argc, char **argv) {
 
   auto result = RUN_ALL_TESTS();
 
-  VerilatedCov::write("logs/coverage_${module_name}.dat");
+  VerilatedCov::write("logs/coverage_counter.dat");
   return result;
 }
-CPP
-
-open(my $fh, '>', $tb_filename) or die "Impossible to open file '$tb_filename': $!";
-print $fh $template;
-close($fh);
-
-print "[SUCCESS] Testbench template created: $tb_filename\n";

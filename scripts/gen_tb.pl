@@ -37,35 +37,79 @@ my $template = <<"CPP";
 #include <verilated.h>
 #include "V${module_name}.h"
 #include <gtest/gtest.h>
-#include <verilated_fst_c.h>
+#include <verilated_vcd_c.h>
 #include <verilated_cov.h>
 
-TEST(${capitalized}, Basic) {
-  Verilated::traceEverOn(true);
+class ${module_name}Test : public ::testing::Test {
+  protected:
+    V${module_name}* dut;
+    VerilatedVcdC* tfp;
+    vluint64_t sim_time = 0;
 
-  V${module_name} dut;
-  VerilatedFstC* tfp = new VerilatedFstC;
+    const int CLK_PERIOD = 10; /* ns */
+    const int CLK_STEP = CLK_PERIOD / 2;
 
-  dut.trace(tfp, 99);
-  tfp->open("wave_${module_name}.fst");
+    void clk_process(void) {
+      dut->clk = 0;           // low half cycle
+      dut->eval();
+      sim_time += CLK_STEP;
+      if (tfp) tfp->dump(sim_time);
 
-  dut.eval();
-  tfp->dump(0);
+      dut->clk = 1;           // high half cycle
+      dut->eval();    
+      sim_time += CLK_STEP;
+      if (tfp) tfp->dump(sim_time);
+    }
 
-  tfp->close();
-  delete tfp;
+    void wait_cycles(unsigned int n) {
+      for (unsigned int i = 0; i < n; i++) {
+        clk_process();
+      }
+    }
 
-  SUCCEED();
+    void SetUp() override {
+      dut = new V${module_name};
+      Verilated::traceEverOn(1);
+      const ::testing::TestInfo* const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+      std::string vcd_filename = std::string("waveform_${module_name}_") + test_info->name() + ".vcd";
+
+      tfp = new VerilatedVcdC;
+      dut->trace(tfp, 99);
+      tfp->open(vcd_filename.c_str());
+      tfp->set_time_unit("1ns");
+      tfp->set_time_resolution("1ps");
+
+      /* initial reset */
+
+
+      /* end initial reset */
+
+      dut->eval();
+      tfp->dump(sim_time++);
+    }
+
+    void TearDown() override {
+      tfp->close();
+      delete tfp;
+      
+      dut->final();
+      delete dut;
+    }
+
+};
+
+TEST_F(${capitalized}, testName) {
+  /* test body */
+
 }
 
 int main(int argc, char **argv) {
   Verilated::commandArgs(argc, argv);
   ::testing::InitGoogleTest(&argc, argv);
 
-  int result = RUN_ALL_TESTS();
+  auto result = RUN_ALL_TESTS();
 
   VerilatedCov::write("logs/coverage_${module_name}.dat");
-
   return result;
 }
 CPP

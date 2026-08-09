@@ -4,6 +4,9 @@ set -e
 TARGET_MODULE=${1:-""}
 
 echo "# Clean and configuration CMake "
+mv rtl/top/* rtl/mods/.
+mv rtl/mods/${TARGET_MODULE}.sv rtl/top/.
+
 mkdir -p build
 cd build
 

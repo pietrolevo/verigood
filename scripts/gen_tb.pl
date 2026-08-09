@@ -60,7 +60,7 @@ my $template = <<"CPP";
 #define NANOSEC 1000
 #define MICROSEC 100000
 
-class ${module_name}Test : public ::testing::Test {
+class ${capitalized}Test : public ::testing::Test {
   protected:
     V${module_name}* dut;
     VerilatedVcdC* tfp;
@@ -119,7 +119,7 @@ class ${module_name}Test : public ::testing::Test {
 
 };
 
-TEST_F(${Module_name}Test, testName) {
+TEST_F(${capitalized}Test, testName) {
   /* test body */
 
 }

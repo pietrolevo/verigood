@@ -25,7 +25,7 @@
 #define NANOSEC 1000
 #define MICROSEC 100000
 
-class pwm_genTest : public ::testing::Test {
+class Pwm_genTest : public ::testing::Test {
   protected:
     Vpwm_gen* dut;
     VerilatedVcdC* tfp;
@@ -93,7 +93,7 @@ class pwm_genTest : public ::testing::Test {
 
 };
 
-TEST_F(pwm_genTest, testDutyCycle) {
+TEST_F(Pwm_genTest, testDutyCycle) {
   dut->en = 1;
   dut->duty_in = 64;
   clk_process();

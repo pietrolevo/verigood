@@ -25,7 +25,7 @@
 #define NANOSEC 1000
 #define MICROSEC 100000
 
-class counterTest : public ::testing::Test {
+class CounterTest : public ::testing::Test {
   protected:
     Vcounter* dut;
     VerilatedVcdC* tfp;
@@ -87,7 +87,7 @@ class counterTest : public ::testing::Test {
 
 };
 
-TEST_F(counterTest, CountUp) {
+TEST_F(CounterTest, CountUp) {
   dut->en = 1;
   wait_cycles(1);
   ASSERT_EQ(dut->data_out, 1);

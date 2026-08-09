@@ -25,7 +25,7 @@
 #define NANOSEC 1000
 #define MICROSEC 100000
 
-class registerTest : public ::testing::Test {
+class RegisterTest : public ::testing::Test {
   protected:
     Vregister* dut;
     VerilatedVcdC* tfp;
@@ -86,7 +86,7 @@ class registerTest : public ::testing::Test {
     }
 };
 
-TEST_F(registerTest, LoadValue) {
+TEST_F(RegisterTest, LoadValue) {
   dut->en = 1;
   dut->data_in = 0xAB;
 
@@ -97,7 +97,7 @@ TEST_F(registerTest, LoadValue) {
   wait_cycles(2);
 }
 
-TEST_F(registerTest, HoldValue) {
+TEST_F(RegisterTest, HoldValue) {
   dut->en = 1;
   dut->data_in = 0x55;
   wait_cycles(1);
@@ -113,7 +113,7 @@ TEST_F(registerTest, HoldValue) {
   wait_cycles(2);
 }
 
-TEST_F(registerTest, ResetClearsOutput) {
+TEST_F(RegisterTest, ResetClearsOutput) {
   dut->en = 1;
   dut->data_in = 0x33;
   wait_cycles(1);

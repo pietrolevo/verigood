@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#		VeriGood Testbench environment with Verilator and GTest
+#		VeriGood Testbench generation script with Verilator and GTest
 #		Copyright (C) 2026  Pietro Alberto Levo
 #
 #		This program is free software: you can redistribute it and/or modify
@@ -30,6 +30,19 @@ if (!$module_name) {
 make_path("tb");
 
 my $tb_filename = "tb/test_${module_name}.cpp";
+
+if (-e $tb_filename) {
+  print "[WARNING] file '$tb_filename' already exists.\n";
+  print "Overwrite it losing all code added manually? [y/N]: ";
+  my $response = <STDIN>;
+  chomp($response);
+  
+  if ($response !~ /^[yY]es|[yY]$/) {
+    print "[EXIT] Operation deleted.\n";
+    exit 0;
+  }
+}
+
 my $capitalized = ucfirst($module_name);
 
 my $template = <<"CPP";
@@ -86,6 +99,15 @@ class ${capitalized}Test : public ::testing::Test {
       for (unsigned int i = 0; i < n; i++) {
         clk_process();
       }
+    }
+
+    bool wait_until_true(std::function<bool()> condition, unsigned int max_cycles = 1000) {
+      unsigned int elapsed_cycles = 0;
+      while (!condition() && (elapsed_cycles < max_cycles)) {
+        clk_process();
+        elapsed_cycles++;
+      }
+      return condition();
     }
 
     void SetUp() override {

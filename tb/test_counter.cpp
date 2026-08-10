@@ -3,7 +3,7 @@
 | file: tb/test_counter.cpp
 | author: Pietro Alberto Levo
 | date: 2026-08-09
-| last update: 2026-08-09
+| last update: 2026-08-10
 | brief: Testbench for counter
 |
 | VeriGood Copyright (C) 2026 Pietro Alberto Levo
@@ -53,6 +53,15 @@ class CounterTest : public ::testing::Test {
       }
     }
 
+    bool wait_until_true(std::function<bool()> condition, unsigned int max_cycles = 1000) {
+      unsigned int elapsed_cycles = 0;
+      while (!condition() && (elapsed_cycles < max_cycles)) {
+        clk_process();
+        elapsed_cycles++;
+      }
+      return condition();
+    }
+
     void SetUp() override {
       dut = new Vcounter;
       Verilated::traceEverOn(1);
@@ -94,6 +103,17 @@ TEST_F(CounterTest, CountUp) {
 
   wait_cycles(4);
   ASSERT_EQ(dut->data_out, 5);
+
+  wait_cycles(2);
+}
+
+TEST_F(CounterTest, CountTo10) {
+  dut->en = 1;
+  wait_until_true([this]() {
+    return (dut->data_out == 10);
+  }, 100);
+  
+  ASSERT_EQ(dut->data_out, 10);
 
   wait_cycles(2);
 }

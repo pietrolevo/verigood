@@ -2,8 +2,8 @@
 #============================================================================#
 | file: tb/test_pwm_gen.cpp
 | author: Pietro Alberto Levo
-| date: 2026-08-09
-| last update: 2026-08-09
+| date: 2026-08-08
+| last update: 2026-08-14
 | brief: Testbench for pwm_gen
 |
 | VeriGood Copyright (C) 2026 Pietro Alberto Levo
@@ -32,30 +32,42 @@ class Pwm_genTest : public ::testing::Test {
     vluint64_t sim_time = 0;
 
     const int CLK_PERIOD = 10;
-    const int TIME_UNIT = MICROSEC;            
+    const int TIME_UNIT = NANOSEC;            
     const int CLK_STEP = ((CLK_PERIOD*TIME_UNIT) / 2);
 
-    void clk_process(void) {
-      dut->clk = 0;           // low half cycle
+    void step_half_clock(void) {
+      dut->clk = !dut->clk;
       dut->eval();
-      sim_time += CLK_STEP;
-      if (tfp) tfp->dump(sim_time);
-
-      dut->clk = 1;           // high half cycle
-      dut->eval();    
       sim_time += CLK_STEP;
       if (tfp) tfp->dump(sim_time);
     }
 
     void wait_cycles(unsigned int n) {
       for (unsigned int i = 0; i < n; i++) {
-        clk_process();
+        step_half_clock();
+        step_half_clock();
       }
     }
 
-    void wait_ns(unsigned int n) {
-      sim_time += n;
-      if (tfp) tfp->dump(sim_time);
+    void wait_posedge() {
+      do {
+        step_half_clock();
+      } while (dut->clk != 1);
+    }
+
+    void wait_negedge() {
+      do {
+        step_half_clock();
+      } while (dut->clk != 0);
+    }
+
+    bool wait_until_true(std::function<bool()> condition, unsigned int max_cycles = 1000) {
+      unsigned int elapsed_cycles = 0;
+      while (!condition() && (elapsed_cycles < max_cycles)) {
+        wait_cycles(1);
+        elapsed_cycles++;
+      }
+      return condition();
     }
 
     void SetUp() override {
@@ -80,7 +92,6 @@ class Pwm_genTest : public ::testing::Test {
       /* end initial reset */
 
       dut->eval();
-      tfp->dump(sim_time++);
     }
 
     void TearDown() override {
@@ -89,6 +100,8 @@ class Pwm_genTest : public ::testing::Test {
       
       dut->final();
       delete dut;
+
+      VerilatedCov::write("logs/coverage_pwm_gen.dat");
     }
 
 };
@@ -96,15 +109,13 @@ class Pwm_genTest : public ::testing::Test {
 TEST_F(Pwm_genTest, testDutyCycle) {
   dut->en = 1;
   dut->duty_in = 64;
-  clk_process();
+  wait_cycles(1);
   for (int i = 0; i < 512; i++) {
     if (i < 63) ASSERT_EQ(dut->pwm_out, 1);
     if (i > 63 && i < 255) ASSERT_EQ(dut->pwm_out, 0);
-    clk_process();
+    wait_cycles(1);
   }
-
   wait_cycles(2);
-  wait_ns(13);
 }
 
 int main(int argc, char **argv) {
@@ -113,6 +124,5 @@ int main(int argc, char **argv) {
 
   auto result = RUN_ALL_TESTS();
 
-  VerilatedCov::write("logs/coverage_pwm_gen.dat");
   return result;
 }

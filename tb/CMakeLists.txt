@@ -59,7 +59,7 @@ function(add_verilog_test MODULE_NAME SOURCE_PATH IS_TOP)
 
       # Register test to Ctest
       include(GoogleTest)
-      gtest_discover_tests(${TEST_TARGET})
+      add_test(NAME ${TEST_TARGET} COMMAND ${TEST_TARGET})
 
   else()
     message(STATUS "ERROR: C++ test file not found for ${MODULE_NAME} (${TEST_CPP})")

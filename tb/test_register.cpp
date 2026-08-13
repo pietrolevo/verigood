@@ -3,7 +3,7 @@
 | file: tb/test_register.cpp
 | author: Pietro Alberto Levo
 | date: 2026-08-08
-| last update: 2026-08-09
+| last update: 2026-08-14
 | brief: Testbench for register
 |
 | VeriGood Copyright (C) 2026 Pietro Alberto Levo
@@ -35,34 +35,52 @@ class RegisterTest : public ::testing::Test {
     const int TIME_UNIT = NANOSEC;            
     const int CLK_STEP = ((CLK_PERIOD*TIME_UNIT) / 2);
 
-    void clk_process(void) {
-      dut->clk = 0;           // low half cycle
+    void step_half_clock(void) {
+      dut->clk = !dut->clk;
       dut->eval();
-      sim_time += CLK_STEP;
-      if (tfp) tfp->dump(sim_time);
-
-      dut->clk = 1;           // high half cycle
-      dut->eval();    
       sim_time += CLK_STEP;
       if (tfp) tfp->dump(sim_time);
     }
 
     void wait_cycles(unsigned int n) {
       for (unsigned int i = 0; i < n; i++) {
-        clk_process();
+        step_half_clock();
+        step_half_clock();
       }
+    }
+
+    void wait_posedge() {
+      do {
+        step_half_clock();
+      } while (dut->clk != 1);
+    }
+
+    void wait_negedge() {
+      do {
+        step_half_clock();
+      } while (dut->clk != 0);
+    }
+
+    bool wait_until_true(std::function<bool()> condition, unsigned int max_cycles = 1000) {
+      unsigned int elapsed_cycles = 0;
+      while (!condition() && (elapsed_cycles < max_cycles)) {
+        wait_cycles(1);
+        elapsed_cycles++;
+      }
+      return condition();
     }
 
     void SetUp() override {
       dut = new Vregister;
       Verilated::traceEverOn(1);
+      const ::testing::TestInfo* const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+      std::string vcd_filename = std::string("waveform_register_") + test_info->name() + ".vcd";
 
       tfp = new VerilatedVcdC;
       dut->trace(tfp, 99);
-      tfp->open("waveform_register.vcd");
+      tfp->open(vcd_filename.c_str());
       tfp->set_time_unit("1ns");
       tfp->set_time_resolution("1ps");
-
 
       /* initial reset */
       dut->rst_n = 0;
@@ -74,16 +92,18 @@ class RegisterTest : public ::testing::Test {
       /* end initial reset */
 
       dut->eval();
-      tfp->dump(sim_time++);
     }
 
     void TearDown() override {
       tfp->close();
       delete tfp;
-
+      
       dut->final();
       delete dut;
+
+      VerilatedCov::write("logs/coverage_register.dat");
     }
+
 };
 
 TEST_F(RegisterTest, LoadValue) {
@@ -133,6 +153,5 @@ int main(int argc, char **argv) {
 
   auto result = RUN_ALL_TESTS();
 
-  VerilatedCov::write("logs/coverage_register.dat");
   return result;
 }

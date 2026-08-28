@@ -1,9 +1,9 @@
 /*
 #============================================================================#
 | file: tb/test_mux.cpp
-| author: <your_name>
+| author: Pietro Alberto Levo
 | date: 2026-08-28
-| last update: <date_of_last_update>
+| last update: 2026-08-28
 | brief: Testbench for mux
 |
 | VeriGood Copyright (C) 2026 Pietro Alberto Levo

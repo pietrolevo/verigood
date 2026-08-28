@@ -54,7 +54,6 @@ To compile, run tests, and generate coverage for a specific module:
 ```bash
 ./scripts/run_test.sh my_module
 ```
-*Note: If no module name is provided, it tests all modules inside `rtl/top/`.*
 
 ### 3. View Coverage Report
 Open the HTML coverage report in your browser:

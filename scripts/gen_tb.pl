@@ -84,7 +84,7 @@ class ${capitalized}Test : public ::testing::Test {
     const int CLK_STEP = ((CLK_PERIOD*TIME_UNIT) / 2);
 
     /* use these two functions if design only combinational */
-    void step(vluint64_t step_time = 10 * TIME_UNIT) {
+    void step(vluint64_t step_time) {
       dut->eval();
       sim_time += step_time;
       if (tfp) tfp->dump(sim_time);

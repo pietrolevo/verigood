@@ -25,16 +25,27 @@ function(add_verilog_test MODULE_NAME SOURCE_PATH IS_TOP)
 
     # take all files .sv except current one
     file(GLOB ALL_RTL_FILES "${CMAKE_SOURCE_DIR}/rtl/top/*.sv" "${CMAKE_SOURCE_DIR}/rtl/mods/*.sv")
-    set(RTL_MODS_EXCEPT_SELF "")
-    foreach(MOD_FILE ${ALL_RTL_FILES})
-      if(NOT MOD_FILE STREQUAL SOURCE_PATH)
-        list(APPEND RTL_MODS_EXCEPT_SELF ${MOD_FILE})
+
+    # pkg files
+    # set(PKG_FILE "${CMAKE_SOURCE_DIR}/rtl/mods/pkg.sv")
+    set(PKG_FILE "")
+    set(VERILATOR_SOURCES "")
+
+    if(EXISTS ${PKG_FILE})
+      list(APPEND VERILATOR_SOURCES ${PKG_FILE})
+    endif()
+
+    list(APPEND VERILATOR_SOURCES ${SOURCE_PATH})
+
+        foreach(MOD_FILE ${ALL_RTL_FILES})
+      if(NOT MOD_FILE STREQUAL SOURCE_PATH AND NOT MOD_FILE STREQUAL PKG_FILE)
+        list(APPEND VERILATOR_SOURCES ${MOD_FILE})
       endif()
     endforeach()
 
       # translate the SystemVerilog file
       verilate(${TEST_TARGET}
-        SOURCES ${SOURCE_PATH} ${RTL_MODS_EXCEPT_SELF}
+        SOURCES ${VERILATOR_SOURCES}
         PREFIX V${MODULE_NAME}
         TOP_MODULE ${MODULE_NAME}
         TRACE

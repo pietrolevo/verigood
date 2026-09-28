@@ -27,7 +27,7 @@ function(add_verilog_test MODULE_NAME SOURCE_PATH IS_TOP)
     file(GLOB ALL_RTL_FILES "${CMAKE_SOURCE_DIR}/rtl/top/*.sv" "${CMAKE_SOURCE_DIR}/rtl/mods/*.sv")
 
     # pkg files
-    # set(PKG_FILE "${CMAKE_SOURCE_DIR}/rtl/mods/pkg.sv")
+    #set(PKG_FILE "${CMAKE_SOURCE_DIR}/rtl/mods/pkg.sv")
     set(PKG_FILE "")
     set(VERILATOR_SOURCES "")
 

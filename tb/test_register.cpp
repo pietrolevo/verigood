@@ -3,7 +3,7 @@
 | file: tb/test_register.cpp
 | author: Pietro Alberto Levo
 | date: 2026-08-08
-| last update: 2026-08-14
+| last update: 2026-09-28
 | brief: Testbench for register
 |
 | VeriGood Copyright (C) 2026 Pietro Alberto Levo
@@ -35,6 +35,18 @@ class RegisterTest : public ::testing::Test {
     const int TIME_UNIT = NANOSEC;            
     const int CLK_STEP = ((CLK_PERIOD*TIME_UNIT) / 2);
 
+    /* use these two functions if design only combinational */
+    void step(vluint64_t step_time) {
+      dut->eval();
+      sim_time += step_time;
+      if (tfp) tfp->dump(sim_time);
+    }
+
+    void wait_ns(unsigned int ns) {
+      step(ns * TIME_UNIT);
+    }
+
+    /* use these other functions for designs with clock */
     void step_half_clock(void) {
       dut->clk = !dut->clk;
       dut->eval();
@@ -83,12 +95,12 @@ class RegisterTest : public ::testing::Test {
       tfp->set_time_resolution("1ps");
 
       /* initial reset */
+      dut->clk = 0;
       dut->rst_n = 0;
       dut->en = 0;
       dut->data_in = 0;
-      wait_cycles(3);
+      wait_cycles(2);
       dut->rst_n = 1;
-      wait_cycles(1);
       /* end initial reset */
 
       dut->eval();
@@ -100,51 +112,55 @@ class RegisterTest : public ::testing::Test {
       
       dut->final();
       delete dut;
-
-      VerilatedCov::write("logs/coverage_register.dat");
+      
+      const ::testing::TestInfo* const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+      std::string cov_filename = std::string("logs/coverage_register_") + test_info->name() + ".dat";
+      VerilatedCov::write(cov_filename.c_str());
     }
 
 };
 
-TEST_F(RegisterTest, LoadValue) {
+TEST_F(RegisterTest, ResetBehavior) {
+  dut->data_in = 0xA5;
   dut->en = 1;
-  dut->data_in = 0xAB;
-
-  wait_cycles(1);
-
-  ASSERT_EQ(dut->data_out, 0xAB);
-
   wait_cycles(2);
+
+  dut->rst_n = 0;
+  wait_posedge();
+  
+  ASSERT_EQ(dut->data_out, 0);
+
+  dut->rst_n = 1;
+  dut->en = 0;
+  dut->data_in = 0x5A;
+  wait_posedge();
+  ASSERT_EQ(dut->data_out, 0);
 }
 
-TEST_F(RegisterTest, HoldValue) {
+TEST_F(RegisterTest, EnableAndLoad) {
   dut->en = 1;
-  dut->data_in = 0x55;
-  wait_cycles(1);
-  ASSERT_EQ(dut->data_out, 0x55);
+
+  dut->data_in = 0x3C;
+  wait_posedge();
+  ASSERT_EQ(dut->data_out, 0x3C);
+
+  dut->data_in = 0xC3;
+  wait_posedge();
+  ASSERT_EQ(dut->data_out, 0xC3);
+}
+
+TEST_F(RegisterTest, HoldWhenDisabled) {
+  dut->en = 1;
+  dut->data_in = 0x7F;
+  wait_posedge();
+  ASSERT_EQ(dut->data_out, 0x7F);
 
   dut->en = 0;
   dut->data_in = 0xFF;
+  wait_posedge();
+  wait_posedge();
 
-  wait_cycles(3);
-
-  ASSERT_EQ(dut->data_out, 0x55);
-
-  wait_cycles(2);
-}
-
-TEST_F(RegisterTest, ResetClearsOutput) {
-  dut->en = 1;
-  dut->data_in = 0x33;
-  wait_cycles(1);
-  ASSERT_EQ(dut->data_out, 0x33);
-
-  dut->rst_n = 0;
-  wait_cycles(1);
-
-  ASSERT_EQ(dut->data_out, 0x00);
-
-  wait_cycles(2);
+  ASSERT_EQ(dut->data_out, 0x7F);
 }
 
 int main(int argc, char **argv) {

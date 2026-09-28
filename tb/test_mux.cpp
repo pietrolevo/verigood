@@ -2,8 +2,8 @@
 #============================================================================#
 | file: tb/test_mux.cpp
 | author: Pietro Alberto Levo
-| date: 2026-08-28
-| last update: 2026-08-28
+| date: 2026-08-08
+| last update: 2026-09-28
 | brief: Testbench for mux
 |
 | VeriGood Copyright (C) 2026 Pietro Alberto Levo
@@ -45,8 +45,8 @@ class MuxTest : public ::testing::Test {
     void wait_ns(unsigned int ns) {
       step(ns * TIME_UNIT);
     }
-
-    /* use these other functions for designs with clock *//*
+    
+    /* use these other functions for designs with clock
     void step_half_clock(void) {
       dut->clk = !dut->clk;
       dut->eval();
@@ -98,7 +98,6 @@ class MuxTest : public ::testing::Test {
       dut->in_A = 0;
       dut->in_B = 0;
       dut->sel = 0;
-      wait_ns(10);
       /* end initial reset */
 
       dut->eval();
@@ -110,25 +109,59 @@ class MuxTest : public ::testing::Test {
       
       dut->final();
       delete dut;
-
-      VerilatedCov::write("logs/coverage_mux.dat");
+      
+      const ::testing::TestInfo* const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+      std::string cov_filename = std::string("logs/coverage_mux_") + test_info->name() + ".dat";
+      VerilatedCov::write(cov_filename.c_str());
     }
 
 };
 
-TEST_F(MuxTest, TestCombinatorio) {
+TEST_F(MuxTest, SelectInputA) {
   dut->in_A = 0xAA;
-  dut->in_B = 0xBB;
-  dut->sel  = 0;
+  dut->in_B = 0x55;
+  dut->sel = 0;
+  
   step(10);
+  
   ASSERT_EQ(dut->out_Y, 0xAA);
 
-  wait_ns(20);
+  wait_ns(10);
+}
+
+TEST_F(MuxTest, SelectInputB) {
+  dut->in_A = 0xAA;
+  dut->in_B = 0x55;
+  dut->sel = 1;
+  
+  step(10);
+  
+  ASSERT_EQ(dut->out_Y, 0x55);
+
+  wait_ns(10);
+}
+
+TEST_F(MuxTest, Combinations) {
+  dut->in_A = 0x00;
+  dut->in_B = 0x00;
+  dut->sel = 0;
+  step(5);
+  ASSERT_EQ(dut->out_Y, 0x00);
 
   dut->sel = 1;
-  step(2);
-  ASSERT_EQ(dut->out_Y, 0xBB);
-  wait_ns(20);
+  step(5);
+  ASSERT_EQ(dut->out_Y, 0x00);
+
+  dut->in_A = 0xFF;
+  dut->in_B = 0x0F;
+  
+  dut->sel = 0;
+  step(5);
+  ASSERT_EQ(dut->out_Y, 0xFF);
+
+  dut->sel = 1;
+  step(5);
+  ASSERT_EQ(dut->out_Y, 0x0F);
 }
 
 int main(int argc, char **argv) {

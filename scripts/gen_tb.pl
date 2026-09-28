@@ -156,7 +156,7 @@ class ${capitalized}Test : public ::testing::Test {
       
       dut->final();
       delete dut;
-
+      
       const ::testing::TestInfo* const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
       std::string cov_filename = std::string("logs/coverage_${module_name}_") + test_info->name() + ".dat";
       VerilatedCov::write(cov_filename.c_str());

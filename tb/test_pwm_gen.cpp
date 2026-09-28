@@ -3,7 +3,7 @@
 | file: tb/test_pwm_gen.cpp
 | author: Pietro Alberto Levo
 | date: 2026-08-08
-| last update: 2026-08-14
+| last update: 2026-09-28
 | brief: Testbench for pwm_gen
 |
 | VeriGood Copyright (C) 2026 Pietro Alberto Levo
@@ -35,6 +35,18 @@ class Pwm_genTest : public ::testing::Test {
     const int TIME_UNIT = NANOSEC;            
     const int CLK_STEP = ((CLK_PERIOD*TIME_UNIT) / 2);
 
+    /* use these two functions if design only combinational */
+    void step(vluint64_t step_time) {
+      dut->eval();
+      sim_time += step_time;
+      if (tfp) tfp->dump(sim_time);
+    }
+
+    void wait_ns(unsigned int ns) {
+      step(ns * TIME_UNIT);
+    }
+
+    /* use these other functions for designs with clock */
     void step_half_clock(void) {
       dut->clk = !dut->clk;
       dut->eval();
@@ -83,12 +95,12 @@ class Pwm_genTest : public ::testing::Test {
       tfp->set_time_resolution("1ps");
 
       /* initial reset */
+      dut->clk = 0;
       dut->rst_n = 0;
       dut->en = 0;
       dut->duty_in = 0;
       wait_cycles(2);
       dut->rst_n = 1;
-      wait_cycles(1);
       /* end initial reset */
 
       dut->eval();
@@ -100,22 +112,51 @@ class Pwm_genTest : public ::testing::Test {
       
       dut->final();
       delete dut;
-
-      VerilatedCov::write("logs/coverage_pwm_gen.dat");
+      
+      const ::testing::TestInfo* const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+      std::string cov_filename = std::string("logs/coverage_pwm_gen_") + test_info->name() + ".dat";
+      VerilatedCov::write(cov_filename.c_str());
     }
 
 };
 
-TEST_F(Pwm_genTest, testDutyCycle) {
+TEST_F(Pwm_genTest, ResetBehavior) {
+  dut->rst_n = 0;
   dut->en = 1;
-  dut->duty_in = 64;
-  wait_cycles(1);
-  for (int i = 0; i < 512; i++) {
-    if (i < 63) ASSERT_EQ(dut->pwm_out, 1);
-    if (i > 63 && i < 255) ASSERT_EQ(dut->pwm_out, 0);
-    wait_cycles(1);
-  }
+  dut->duty_in = 100;
   wait_cycles(2);
+
+  ASSERT_EQ(dut->pwm_out, 0);
+}
+
+TEST_F(Pwm_genTest, PwmOutputWithDuty) {
+  dut->en = 1;
+  dut->duty_in = 5;
+
+  wait_posedge();
+  ASSERT_EQ(dut->pwm_out, 1);
+
+  wait_posedge();
+  ASSERT_EQ(dut->pwm_out, 1);
+
+  wait_posedge();
+  wait_posedge();
+  wait_posedge();
+  
+  wait_posedge();
+  ASSERT_EQ(dut->pwm_out, 0);
+}
+
+TEST_F(Pwm_genTest, DisabledHold) {
+  dut->en = 1;
+  dut->duty_in = 10;
+  wait_cycles(3);
+
+  dut->en = 0;
+  int initial_pwm = dut->pwm_out;
+  
+  wait_cycles(3);
+  ASSERT_EQ(dut->pwm_out, initial_pwm);
 }
 
 int main(int argc, char **argv) {

@@ -1,6 +1,6 @@
 # VeriGood
 
-A workspace for developing SystemVerilog designs, simulating them with Verilator, and running unit tests using Google Test.
+A simple workspace for developing SystemVerilog designs, simulating them with Verilator, and running unit tests using Google Test.
 
 ---
 

@@ -46,7 +46,7 @@ verigood/
 ### 1. Generate a Testbench
 To create a C++ testbench template for a module named `my_module`:
 ```bash
-perl scripts/gen_tb.pl my_module
+./scripts/gen_tb.pl my_module
 ```
 
 ### 2. Build and Run Tests

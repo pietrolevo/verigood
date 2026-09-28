@@ -7,7 +7,7 @@ A simple workspace for developing SystemVerilog designs, simulating them with Ve
 ## Features
 
 * **C++ Testing:** Write unit tests using Google Test (GTest).
-* **Automated Builds:** Fast C++ compilation using CMake.
+* **Automated Builds:** C++ compilation using CMake.
 * **Code Generator:** Automatically create C++ testbench templates.
 * **Coverage Analysis:** Measure code coverage and export reports to HTML.
 * **Waveform Viewer:** Access to `.vcd` files via GTKWave.
